@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+'''
+AUTHOR: SWASTIK NATH
+IMPLEMENTATION IN COURTESY OF UDACITY
+PROJECT 1: INTEL EDGE AI FOR IOT DEVELOPERS NANODEGREE
+'''
 """
  Copyright (c) 2018 Intel Corporation.
 

@@ -75,9 +75,22 @@ def build_argparser():
 
 def connect_mqtt():
     ### TODO: Connect to the MQTT client ###
-    client = None
+    client = mqtt.Client()
 
     return client
+
+def draw_frame_on_inference(frame, result):
+    current_count = 0
+    for det in result[0][0]:
+        if det[2] > prob_threshold:
+            xmin = int(det[3] * i_w)
+            ymin = int(det[4] * i_h)
+            xmax = int(det[5] * i_w)
+            ymax = int(det[6] * i_h)
+            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0,55, 255), 1)
+            current_count += 1
+            total_count += current_count
+    return frame, current_count
 
 
 def infer_on_stream(args, client):
@@ -126,7 +139,7 @@ def infer_on_stream(args, client):
     while capture_frames.isOpened():
         isEnd, frame = capture_frames.read()
         current_count = 0
-        if not isEnd:
+        if not isnotEnd:
             break
          ### TODO: Pre-process the image as needed ###
         inf_image = cv2.resize(frame, (w, h))
@@ -143,21 +156,24 @@ def infer_on_stream(args, client):
              ### TODO: Get the results of the inference request ###
             results = infer_network.get_output(current_request_num)
             ### TODO: Extract any desired stats from the results ###
-            for det in results:
-                if det[0][0] > prob_threshold:
-                    current_count += 1 
-                    total_count += current_count
-                    
+        out_frame, current_count = draw_frame_on_inference(frame, result)          
             ### TODO: Calculate and send relevant information on ###
             ### current_count, total_count and duration to the MQTT server ###
             ### Topic "person": keys of "count" and "total" ###
+        client.publish("person", json.dumps({"count": current_count, "total":total_count})
             ### Topic "person/duration": key of "duration" ###
-
+        client.publish("person/duration", json.dumps({"duration":duration})
         ### TODO: Send the frame to the FFMPEG server ###
+        sys.stdout.buffer.write(out_frame)
+        sys.stdout.flush()  
 
         ### TODO: Write an output image if `single_image_mode` ###
         if single_image_mode:
             cv2.imWrite('infer_out.jpg', frame)
+                       
+        capture_frames.release()
+        cv2.destoryAllWindows()
+        client.disconnect()
 
 
 def main():
