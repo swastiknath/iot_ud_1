@@ -31,7 +31,6 @@ import time
 import socket
 import json
 import cv2
-
 import logging as log
 import paho.mqtt.client as mqtt
 
@@ -80,6 +79,13 @@ def connect_mqtt():
     return client
 
 def draw_frame_on_inference(frame, result):
+    '''
+    Drawing the Bounding Boxes over the output frames.
+    Counting the Number of People from the Detections per frame. 
+    params:
+    frame: frame of a video or an image to draw the bounding boxes.
+    result: result from the DetectionOutputLayer of an SSD Network.
+    '''
     current_count = 0
     for det in result[0][0]:
         if det[2] > prob_threshold:
@@ -87,9 +93,8 @@ def draw_frame_on_inference(frame, result):
             ymin = int(det[4] * i_h)
             xmax = int(det[5] * i_w)
             ymax = int(det[6] * i_h)
-            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0,55, 255), 1)
+            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0,155, 55), 3)
             current_count += 1
-            total_count += current_count
     return frame, current_count
 
 
@@ -102,78 +107,103 @@ def infer_on_stream(args, client):
     :param client: MQTT client
     :return: None
     """
+    global i_w, i_h, prob_threshold
     current_request_num = 0
     total_count = 0
-    current_count = 0
+    latest_count = 0
+    previous_count = 0
+    duration_sum = 0
+    frame_count = 0
+    infer_frame_count = 0
     single_image_mode = False
     # Initialise the class
     infer_network = Network()
     # Set Probability threshold for detections
     prob_threshold = args.prob_threshold
+    client.connect(HOSTNAME, port=MQTT_PORT, keepalive=60, bind_address=IPADDRESS)
+    ### Load the model through `infer_network` ###
+    n,c,h,w = infer_network.load_model(args.model, args.device, 1, 1, current_request_num, args.cpu_extension)
 
-    ### TODO: Load the model through `infer_network` ###
-    n,c,h,w = infer_network(args.model, args.device, 1, 1, current_request_num, args.cpu_extension)
-
-    ### TODO: Handle the input stream ###
+    ### Handle the input stream ###
     if args.input.endswith('.jpg') or args.input.endswith('.bmp'):
         single_image_mode = True
         input_stream = args.input
     else:
-        input_stream = args.input  #Handling the case of the Video Files
-        assert os.path.isFile(args.input) "Error: Video File is not Found at the place specified."
-    ### TODO: Loop until stream is over ###
+        input_stream = args.input  
+        
     capture_frames = cv2.VideoCapture(input_stream)
     length_of_video = int(capture_frames.get(cv2.CAP_PROP_FRAME_COUNT))
     frame_rate = int(capture_frames.get(cv2.CAP_PROP_FPS))
-        ### TODO: Read from the video capture ###
+        ### Read from the video capture ###
     infer_time_start = time.time()
     if input_stream:
         capture_frames.open(args.input)
-    if not captures_frames.isOpened():
+    if not capture_frames.isOpened():
         log.error("Unable to Open the Video File.")
-        
-    global i_w, i_h
+    
     i_w = capture_frames.get(3)
     i_h = capture_frames.get(4)
-    
+    out =  cv2.VideoWriter(os.path.join("people_counter.mp4"), 0x00000021, frame_rate, (int(i_w), int(i_h)), True)
     while capture_frames.isOpened():
+
         isEnd, frame = capture_frames.read()
+        frame_count += 1
         current_count = 0
-        if not isnotEnd:
+        if not isEnd:
             break
-         ### TODO: Pre-process the image as needed ###
+        cv2.waitKey(10)
+         ### Pre-process the image as needed ###
         inf_image = cv2.resize(frame, (w, h))
         inf_image = inf_image.transpose((2,0,1))
         inf_image = inf_image.reshape((n,c,h,w))
 
-        ### TODO: Start asynchronous inference for specified request ###
+        # Starting the Asynchronous Inference: 
         inf_start = time.time()
         infer_network.exec_net(current_request_num, inf_image)
 
-        ### TODO: Wait for the result ###
+        ### Waiting for the result ###
         if infer_network.wait(current_request_num) == 0:
-            duration = time.time() - inf_start
-             ### TODO: Get the results of the inference request ###
+            duration = (time.time() - inf_start)
             results = infer_network.get_output(current_request_num)
+            out_frame, current_count = draw_frame_on_inference(frame, results) 
+            duration_message = "Inference Time Per Frame: {:.3f}ms".format(duration * 1000)
+            
+        if current_count > 0:
+            infer_frame_count += 1
+            duration_sum += duration 
+                
+        if previous_count == 0 and infer_frame_count > 9:
+            total_count += current_count
+#             infer_frame_count = 0
+            previous_count = current_count
+             
+        if current_count == 0:
+            infer_frame_count = 0
+            previous_count = current_count
+            duration_sum = 0
+            client.publish("person/duration", json.dumps({"duration": }))
+                
+        cv2.putText(out_frame, duration_message, (15, 15), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
+        people_count_msg = "People counted: in Current Frame: {} ; Total: {}".format(current_count, total_count)
+        cv2.putText(out_frame, people_count_msg, (15, 30), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
+        person_duration_msg = "Average Duration in Frame: {:.2f} seconds".format(duration_sum)
+        cv2.putText(out_frame, person_duration_msg, (15, 45), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
+        out.write(out_frame)
+        
             ### TODO: Extract any desired stats from the results ###
-        out_frame, current_count = draw_frame_on_inference(frame, result)          
-            ### TODO: Calculate and send relevant information on ###
-            ### current_count, total_count and duration to the MQTT server ###
-            ### Topic "person": keys of "count" and "total" ###
-        client.publish("person", json.dumps({"count": current_count, "total":total_count})
-            ### Topic "person/duration": key of "duration" ###
-        client.publish("person/duration", json.dumps({"duration":duration})
-        ### TODO: Send the frame to the FFMPEG server ###
+        client.publish("person", json.dumps({"count": current_count, "total": total_count}))
+        client.publish("person/duration", json.dumps({"duration": duration_sum}))
+        
+        ### Send the frame to the FFMPEG server ###
         sys.stdout.buffer.write(out_frame)
         sys.stdout.flush()  
 
-        ### TODO: Write an output image if `single_image_mode` ###
+        ### Write an output image if `single_image_mode` ###
         if single_image_mode:
             cv2.imWrite('infer_out.jpg', frame)
                        
-        capture_frames.release()
-        cv2.destoryAllWindows()
-        client.disconnect()
+    capture_frames.release()
+    client.disconnect()
 
 
 def main():
@@ -192,3 +222,14 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+##### ================================================================================== ######
+# pip install requests pyyaml -t /usr/local/lib/python3.5/dist-packages && clear && source /opt/intel/openvino/bin/setupvars.sh -pyver 3.5
+
+# python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m frozen_inference_graph.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
+
+# python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
+
+# python main.py -i resources/people-detection.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
+
+# python main.py -i resources/face-demographics-walking.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
