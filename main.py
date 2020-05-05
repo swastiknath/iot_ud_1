@@ -69,6 +69,9 @@ def build_argparser():
     parser.add_argument("-pt", "--prob_threshold", type=float, default=0.5,
                         help="Probability threshold for detections filtering"
                         "(0.5 by default)")
+    parser.add_argument("-fe", "--frames_ignore", type=int, default=9, 
+                        help="Number of Frames to ignore before counting a person (default: 9)")
+    
     return parser
 
 
@@ -170,19 +173,25 @@ def infer_on_stream(args, client):
             
         if current_count > 0:
             infer_frame_count += 1
-            duration_sum += duration 
+            duration_sum += duration
                 
-        if previous_count == 0 and infer_frame_count > 9:
+        if previous_count == 0 and infer_frame_count > args.frames_ignore:
             total_count += current_count
 #             infer_frame_count = 0
             previous_count = current_count
+            client.publish("person", json.dumps({"count": current_count}))
+            client.publish("person", json.dumps({"total": total_count}))
+            
+        
+        if previous_count != 0 and current_count == 0:
+            client.publish("person/duration", json.dumps({"duration": duration_sum}))
              
         if current_count == 0:
             infer_frame_count = 0
             previous_count = current_count
-            duration_sum = 0
-            client.publish("person/duration", json.dumps({"duration": }))
-                
+            duration_sum = 0.0  
+            client.publish("person", json.dumps({"count": current_count}))
+    
         cv2.putText(out_frame, duration_message, (15, 15), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
         people_count_msg = "People counted: in Current Frame: {} ; Total: {}".format(current_count, total_count)
         cv2.putText(out_frame, people_count_msg, (15, 30), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
@@ -190,9 +199,8 @@ def infer_on_stream(args, client):
         cv2.putText(out_frame, person_duration_msg, (15, 45), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
         out.write(out_frame)
         
-            ### TODO: Extract any desired stats from the results ###
-        client.publish("person", json.dumps({"count": current_count, "total": total_count}))
-        client.publish("person/duration", json.dumps({"duration": duration_sum}))
+        client.publish("person", json.dumps({"count": current_count}))
+       
         
         ### Send the frame to the FFMPEG server ###
         sys.stdout.buffer.write(out_frame)
@@ -226,10 +234,12 @@ if __name__ == '__main__':
 ##### ================================================================================== ######
 # pip install requests pyyaml -t /usr/local/lib/python3.5/dist-packages && clear && source /opt/intel/openvino/bin/setupvars.sh -pyver 3.5
 
-# python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m frozen_inference_graph.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
+#  python main.py -fe 15 -i resources/Pedestrian_Detect_2_1_1.mp4 -m frozen_inference_graph.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.3 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm 
+
+# python main.py --frames_ignore 15 -i resources/Pedestrian_Detect_2_1_1.mp4 -m ssd_inception/frozen_inference_graph.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.3 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm 
 
 # python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
 
 # python main.py -i resources/people-detection.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
 
-# python main.py -i resources/face-demographics-walking.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
+# python main.py -i resources/face-demographics-walking.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm 
