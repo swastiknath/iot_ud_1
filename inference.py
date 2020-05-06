@@ -40,7 +40,6 @@ class Network:
     """
 
     def __init__(self):
-        ###  Initialize any class variables desired ###
         self.net = None
         self.input_blob = None
         self.output_blob = None
@@ -51,7 +50,6 @@ class Network:
         
 
     def load_model(self, model, device, input_size, output_size, num_requests, cpu_extension=None, ie=None ):
-        ###  Load the model ###
         model_xml = model
         model_bin = os.path.splitext(model_xml)[0]+'.bin'
         self.net = IENetwork(model = model_xml, weights = model_bin)
@@ -78,7 +76,6 @@ class Network:
         self.input_blob = next(iter(self.net.inputs))
         self.output_blob = next(iter(self.net.outputs))
         
-        ### TODO: Return the loaded inference plugin ###
         if num_requests == 0:
             self.network_plugin = self.ie.load_network(self.net, device)
         else:
@@ -87,11 +84,9 @@ class Network:
         return self.get_input_shape()
 
     def get_input_shape(self):
-        ### Return the shape of the input layer ###
         return self.net.inputs[self.input_blob].shape
 
     def exec_net(self, request_id, frame):
-        ### TODO: Start an asynchronous request ###
         self.inference_handler = self.network_plugin.start_async(request_id=request_id, 
                                                                  inputs={self.input_blob:frame})
         ###  Return any necessary information ###

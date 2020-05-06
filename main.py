@@ -71,12 +71,13 @@ def build_argparser():
                         "(0.5 by default)")
     parser.add_argument("-fe", "--frames_ignore", type=int, default=9, 
                         help="Number of Frames to ignore before counting a person (default: 9)")
+    parser.add_argument("-al", "--enable_alert_limit", type=int, default=None,
+                        help="Enable Intruder Alert Limit when person in frames goes up (default: None)")
     
     return parser
 
 
 def connect_mqtt():
-    ### TODO: Connect to the MQTT client ###
     client = mqtt.Client()
 
     return client
@@ -116,6 +117,7 @@ def infer_on_stream(args, client):
     latest_count = 0
     previous_count = 0
     duration_sum = 0
+    duration_in_frame=0.0
     frame_count = 0
     infer_frame_count = 0
     single_image_mode = False
@@ -173,18 +175,32 @@ def infer_on_stream(args, client):
             
         if current_count > 0:
             infer_frame_count += 1
-            duration_sum += duration
+            duration_sum += float(infer_frame_count)/frame_rate
+        
+        if current_count > 0 and infer_frame_count > args.frames_ignore and previous_count > 0:
+            '''
+            If the Count of People Goes up and keeps like that for more than 
+            '''
+            previous_count = max(previous_count, current_count)
+            
                 
         if previous_count == 0 and infer_frame_count > args.frames_ignore:
             total_count += current_count
 #             infer_frame_count = 0
-            previous_count = current_count
+            previous_count = max(previous_count, current_count)
             client.publish("person", json.dumps({"count": current_count}))
             client.publish("person", json.dumps({"total": total_count}))
             
+        if args.enable_alert_limit is not None and current_count >= args.enable_alert_limit:
+            client.publish("alert", json.dumps({"alert_msg": "Stampede", "count":current_count}))
+            intruder_msg = "STAMPEDE ALERT, CURRENT COUNT {} IS SAME OR EXCEEDED SAFE LIMIT {}".format(current_count, args.enable_alert_limit)
+            cv2.putText(out_frame, intruder_msg, (15, 45), cv2.FONT_HERSHEY_DUPLEX, 0.5, (10, 10, 210), 1)
+            
         
         if previous_count != 0 and current_count == 0:
-            client.publish("person/duration", json.dumps({"duration": duration_sum}))
+            duration_in_frame = infer_frame_count/frame_rate
+            for i in range(previous_count):
+                client.publish("person/duration", json.dumps({"duration": duration_in_frame}))
              
         if current_count == 0:
             infer_frame_count = 0
@@ -195,8 +211,9 @@ def infer_on_stream(args, client):
         cv2.putText(out_frame, duration_message, (15, 15), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
         people_count_msg = "People counted: in Current Frame: {} ; Total: {}".format(current_count, total_count)
         cv2.putText(out_frame, people_count_msg, (15, 30), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
-        person_duration_msg = "Average Duration in Frame: {:.2f} seconds".format(duration_sum)
-        cv2.putText(out_frame, person_duration_msg, (15, 45), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
+#         person_duration_msg = "Duration in Frame: {:.2f} seconds".format(duration_sum%60)
+#         cv2.putText(out_frame, person_duration_msg, (15, 45), cv2.FONT_HERSHEY_DUPLEX, 0.5, (210, 10, 10), 1)
+        
         out.write(out_frame)
         
         client.publish("person", json.dumps({"count": current_count}))
@@ -231,15 +248,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-##### ================================================================================== ######
-# pip install requests pyyaml -t /usr/local/lib/python3.5/dist-packages && clear && source /opt/intel/openvino/bin/setupvars.sh -pyver 3.5
-
-#  python main.py -fe 15 -i resources/Pedestrian_Detect_2_1_1.mp4 -m frozen_inference_graph.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.3 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm 
-
-# python main.py --frames_ignore 15 -i resources/Pedestrian_Detect_2_1_1.mp4 -m ssd_inception/frozen_inference_graph.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.3 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm 
-
-# python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
-
-# python main.py -i resources/people-detection.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
-
-# python main.py -i resources/face-demographics-walking.mp4 -m intel/person-detection-retail-0013/FP32/person-detection-retail-0013.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm 
