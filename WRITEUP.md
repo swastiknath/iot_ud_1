@@ -51,9 +51,9 @@ print("Directory size: " + str(total_size*1e-6)+" Megabytes")
  |-----------------------|---------------|---------------|
  | SSD MOBILENET OID V2  |              179 MB         |                27 MB       |
  |-----------------------|---------------|---------------|
- | Intel Person         |                              |                            |
- | Detection Retail -   |                       --     |               9.09 MB      |
- | 0013 - FP32/FP16/INT8|                              |                            |
+ | Intel Person  Detection Retail - 0013 - FP32/FP16/INT8       |                              |                   9.09 MB         |
+                                                   
+                                                    
  
 
 
