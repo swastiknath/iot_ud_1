@@ -40,7 +40,7 @@ for path, dirs, files in os.walk(start_path):
         total_size += os.path.getsize(fp)
 print("Directory size: " + str(total_size*1e-6)+" Megabytes")
  ```
- ------------------------------------------------------------------------------------
+ 
  | Name of the Model     |   Pre-Conversion Size       |  Post Conversion Size      |
  ------------------------------------------------------------------------------------
  | SSD INCEPTION V2      |             265.23 MB       |              100.24 MB     |
@@ -54,14 +54,14 @@ print("Directory size: " + str(total_size*1e-6)+" Megabytes")
  | Intel Person         |                              |                            |
  | Detection Retail -   |                       --     |               9.09 MB      |
  | 0013 - FP32/FP16/INT8|                              |                            |
- ------------------------------------------------------------------------------------
+ 
 
 
 ### INFERENCE TIME DIFFERENCES BETWEEN THE **IR** AND THE ORIGINAL MODEL FILES:
 
 We get to know about the model's pre-conversion inference timings from the [Tensorflow Detection Model Zoo]('https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md). The Post-conversion stats are found via printing the infrence time for each frame to the video output sent to the FFMPEG server.
 
- -------------------------------------------------------------------------------------
+ 
  | Name of the Model    |Pre-conversion Inference (ms) | Post-coversion Inference(ms)|
  -------------------------------------------------------------------------------------
  | SSD INCEPTION V2     |                       42     |                       152   |
@@ -75,7 +75,7 @@ We get to know about the model's pre-conversion inference timings from the [Tens
  | Intel Person Detectio|                              |                             |
  | Detection Retail -   |                       --     |                        15   |
  | 0013 - FP32          |                              |                             |
- -------------------------------------------------------------------------------------
+
 
 ## Assess Model Use Cases
 
