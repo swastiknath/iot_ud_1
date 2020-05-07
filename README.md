@@ -151,6 +151,10 @@ When running Intel® Distribution of OpenVINO™ toolkit Python applications on 
 *Depending on whether you are using Linux or Mac, the filename will be either `libcpu_extension_sse4.so` or `libcpu_extension.dylib`, respectively.* (The Linux filename may be different if you are using a AVX architecture)
 
 Though by default application runs on CPU, this can also be explicitly specified by ```-d CPU``` command-line argument:
+If you wish to enable the Alert on Larger Gathering in a Frame use the ``` -al <Limit of People(int)>``` command-line argument:
+If you wish to configure the frames to ignore to prevent double counting use the ``` -fe <Number of Frames(int)>``` command line argument.
+
+**Configured Frame Ignores for Different Models and Exmaples of Commands are available [here](https://github.com/swastiknath/iot_ud_1/blob/master/commands.txt)**.
 
 ```
 python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m your-model.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
