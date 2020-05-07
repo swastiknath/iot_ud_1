@@ -307,9 +307,9 @@ In investigating potential people counter models, I tried each of the following 
   - [Tensorflow Model Zoo Github](http://download.tensorflow.org/models/object_detection/ssd_inception_v2_coco_2018_01_28.tar.gz)
   - I extracted the model archive and used the **frozen_inference_graph.pb** and **pipeline.config files** along with the **ssd_v2_support.json** file from the OpenVino Toolkit Model Optimizer to transform the model into the IR format. 
   ```
-  !wget http://download.tensorflow.org/models/object_detection/ssd_inception_v2_coco_2018_01_28.tar.gz
-  !tar -xvf ssd_inception_v2_coco_2018_01_28.tar.gz
-  !/opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ssd_inception_v2_coco_2018_01_28/frozen_inference_graph.pb --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_v2_support.json --tensorflow_object_detection_api_pipeline_config ssd_inception_v2_coco_2018_01_28/pipeline.config --reverse_input_channel -o ssd_inception
+  wget http://download.tensorflow.org/models/object_detection/ssd_inception_v2_coco_2018_01_28.tar.gz
+  tar -xvf ssd_inception_v2_coco_2018_01_28.tar.gz
+  /opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ssd_inception_v2_coco_2018_01_28/frozen_inference_graph.pb --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_v2_support.json --tensorflow_object_detection_api_pipeline_config ssd_inception_v2_coco_2018_01_28/pipeline.config --reverse_input_channel -o ssd_inception
 
   ```
   - The model's latency was medium around 152 milliseconds. Accuracy was not quite reliable, as it, in some intermediate frames not detecting person facing backwards. So I had to use 15 frames and probability to around 0.4 to make certain to not to  double count a person. 
@@ -318,9 +318,9 @@ In investigating potential people counter models, I tried each of the following 
   - [Tensorflow Model Zoo Github](http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_coco_2018_03_29.tar.gz)
   - I extracted the model archive and used the **frozen_inference_graph.pb** and **pipeline.config files** along with the **ssd_v2_support.json** file from the OpenVino Toolkit Model Optimizer to transform the model into the IR format. 
   ```
-  !wget http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_coco_2018_03_29.tar.gz
-  !tar -xvf ssd_mobilenet_v2_coco_2018_03_29.tar.gz
-  !/opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ssd_mobilenet_v1_coco_2018_01_28/frozen_inference_graph.pb  --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_support.json --tensorflow_object_detection_api_pipeline_config ssd_mobilenet_v1_coco_2018_01_28/pipeline.config --reverse_input_channel -o ssd_mbl_v1
+  wget http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_coco_2018_03_29.tar.gz
+  tar -xvf ssd_mobilenet_v2_coco_2018_03_29.tar.gz
+  /opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ssd_mobilenet_v1_coco_2018_01_28/frozen_inference_graph.pb  --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_support.json --tensorflow_object_detection_api_pipeline_config ssd_mobilenet_v1_coco_2018_01_28/pipeline.config --reverse_input_channel -o ssd_mbl_v1
 
   ```
   - The model was quite appropriate in terms of detecting the people facing backwards. It counted the people with +-1 and Duration with +- 2 units. I have set the probability threshold to 0.7 in order to avoid the double counts and frames to skip to 9. But still in some intermediate frames in some videos sometimes it fails to properly draw the bounding boxes. In the app to accomodate this issue I have implemented to igonre such intermediate miscalculations. 
@@ -329,11 +329,11 @@ In investigating potential people counter models, I tried each of the following 
   - [Tensorflow Model Zoo](http://download.tensorflow.org/models/object_detection/ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz)
   - I extracted the model archive and used the **frozen_inference_graph.pb** and **pipeline.config files** along with the **ssd_v2_support.json** file from the OpenVino Toolkit Model Optimizer to transform the model into the IR format.
   ```
-  !wget http://download.tensorflow.org/models/object_detection/ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz
-  !tar -xvf ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz
-  !rm -r ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz
+  wget http://download.tensorflow.org/models/object_detection/ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz
+  tar -xvf ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz
+  rm -r ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz
 
-  !/opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ssdlite_mobilenet_v2_coco_2018_05_09/frozen_inference_graph.pb --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_v2_support.json --tensorflow_object_detection_api_pipeline_config ssdlite_mobilenet_v2_coco_2018_05_09/pipeline.config --reverse_input_channel -o ssdlite_mobilenet 
+  /opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ssdlite_mobilenet_v2_coco_2018_05_09/frozen_inference_graph.pb --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_v2_support.json --tensorflow_object_detection_api_pipeline_config ssdlite_mobilenet_v2_coco_2018_05_09/pipeline.config --reverse_input_channel -o ssdlite_mobilenet 
   ```
   - The model not was quite appropriate in terms of detecting the people facing backwards althought the inference speed was very fast inference latency was around 25 milliseconds. I had to set the probability threshold to very low to get it working. It counted the people with +-1 and Duration with +- 2 units. I have set the probability threshold to 0.3 in order to avoid the double counts and frames to skip to 15. But still in some intermediate frames in some videos sometimes it fails to properly draw the bounding boxes. In the app to accomodate this issue I have implemented to igonre such intermediate miscalculations 
 
@@ -341,10 +341,10 @@ In investigating potential people counter models, I tried each of the following 
   - [Tensorflow Model Zoo](http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_oid_v4_2018_12_12.tar.gz)
   - I extracted the model archive and used the **frozen_inference_graph.pb** and **pipeline.config files** along with the **ssd_v2_support.json** file from the OpenVino Toolkit Model Optimizer to transform the model into the IR format.
   ```
-  !wget http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_oid_v4_2018_12_12.tar.gz
-  !tar -xvf ssd_mobilenet_v2_oid_v4_2018_12_12.tar.gz
-  !rm -r ssd_mobilenet_v2_oid_v4_2018_12_12.tar.gz
+  wget http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_oid_v4_2018_12_12.tar.gz
+  tar -xvf ssd_mobilenet_v2_oid_v4_2018_12_12.tar.gz
+  rm -r ssd_mobilenet_v2_oid_v4_2018_12_12.tar.gz
 
-  !/opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ssd_mobilenet_v2_oid_v4_2018_12_12/frozen_inference_graph.pb --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_v2_support.json --tensorflow_object_detection_api_pipeline_config ssd_mobilenet_v2_oid_v4_2018_12_12/pipeline.config --reverse_input_channel -o ssd_oivd_mobilenet
+  /opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ssd_mobilenet_v2_oid_v4_2018_12_12/frozen_inference_graph.pb --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_v2_support.json --tensorflow_object_detection_api_pipeline_config ssd_mobilenet_v2_oid_v4_2018_12_12/pipeline.config --reverse_input_channel -o ssd_oivd_mobilenet
   ```
   - The model's performance was not reliable, inference time was medium around 65 milliseconds. I was not properly drawing the bounding boxes and not properly calculating duration at all. Even after setting 15 frames and probability threshold to 0.4 it was unable to provide reliable performance. 
