@@ -44,13 +44,9 @@ print("Directory size: " + str(total_size*1e-6)+" Megabytes")
  | Name of the Model     |   Pre-Conversion Size       |  Post Conversion Size      |
  |-----------------------|---------------|---------------|
  | SSD INCEPTION V2      |             265.23 MB       |              100.24 MB     |
- |-----------------------|---------------|---------------|
  | SSD MOBILENET V2      |              106 MB         |               64 MB        |
- |-----------------------|---------------|---------------|
  | SSDLite MOBILENET V2  |              112 MB         |             18.023 MB      |
- |-----------------------|---------------|---------------|
  | SSD MOBILENET OID V2  |              179 MB         |                27 MB       |
- |-----------------------|---------------|---------------|
  | Intel Person  Detection Retail - 0013 - FP32/FP16/INT8       |                              |                   9.09 MB         |
                                                    
                                                     
@@ -65,17 +61,10 @@ We get to know about the model's pre-conversion inference timings from the [Tens
  | Name of the Model    |Pre-conversion Inference (ms) | Post-coversion Inference(ms)|
 |-----------------------|---------------|---------------|
  | SSD INCEPTION V2     |                       42     |                       152   |
- |-----------------------|---------------|---------------|
  | SSD MOBILENET V2     |                       31     |                        45   |
- |-----------------------|---------------|---------------|
  | SSDLite MOBILENET V2 |                       27     |                        25   |
- |-----------------------|---------------|---------------|
  | SSD MOBILENET OID V2 |                       89     |                        64   |
- |-----------------------|---------------|---------------|
- | Intel Person Detectio|                              |                             |
- | Detection Retail -   |                       --     |                        15   |
- | 0013 - FP32          |                              |                             |
-
+ | Intel Person Detection Retail - 0013 - FP32  |                              |                     15        |
 
 ## Assess Model Use Cases
 
