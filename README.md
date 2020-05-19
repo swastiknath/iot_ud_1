@@ -3,6 +3,8 @@
 | Details            |              |
 |-----------------------|---------------|
 | Programming Language: |  Python 3.5 or 3.6 |
+| Maintained By :        | Swastik Nath.    |
+| Correspondence Contact: | [Send Email](mailto:swastiknath@outlook.com) |
 
 ![people-counter-python](./images/people-counter-image.png)
 
